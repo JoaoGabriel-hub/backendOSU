@@ -1,70 +1,144 @@
 using BibliotecaApi.Data;
 using BibliotecaApi.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace BibliotecaApi.Auth
 {
     [ApiController]
-    [Route("api/auth")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly AppDbContext _db;
+        private readonly IConfiguration _configuration;
         private readonly PasswordHasher<User> _passwordHasher;
 
-        // Injeção do DbContext
-        public AuthController(AppDbContext context)
+        public AuthController(AppDbContext db, IConfiguration configuration)
         {
-            _context = context;
-
-            // Inicializa o hasher padrão do ASP.NET
+            _db = db;
+            _configuration = configuration;
             _passwordHasher = new PasswordHasher<User>();
         }
 
-        // -----------------------------
-        // POST: api/auth/login
-        // -----------------------------
-        [AllowAnonymous]
+        /// <summary>
+        /// POST /api/auth/login
+        /// Body: { "email": "...", "password": "..." }
+        /// </summary>
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
         {
-            // 1️⃣ Validação do payload
+            // Se faltar campo, [ApiController] já retorna 400 com ModelState,
+            // mas deixo isso aqui para mensagem mais direta:
             if (!ModelState.IsValid)
+                return BadRequest(new AuthResponse { Message = "Dados de login inválidos." });
+
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+            // Busca usuário por email (case-insensitive)
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+
+            if (user is null)
+                return Unauthorized(new AuthResponse { Message = "Credenciais inválidas." });
+
+            // Seu hash "AQAAAA..." é do ASP.NET Identity => validate assim:
+            var verify = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+
+            if (verify == PasswordVerificationResult.Failed)
+                return Unauthorized(new AuthResponse { Message = "Credenciais inválidas." });
+
+            // Lê config JWT
+            var jwtSection = _configuration.GetSection("JwtSettings");
+            var key = jwtSection["Key"];
+            var issuer = jwtSection["Issuer"];
+            var audience = jwtSection["Audience"];
+            var expireMinutesStr = jwtSection["ExpireMinutes"];
+
+            if (string.IsNullOrWhiteSpace(key) ||
+                string.IsNullOrWhiteSpace(issuer) ||
+                string.IsNullOrWhiteSpace(audience) ||
+                string.IsNullOrWhiteSpace(expireMinutesStr))
             {
-                return BadRequest(ModelState);
+                return StatusCode(500, new AuthResponse
+                {
+                    Message = "JwtSettings inválido no appsettings.json (Key/Issuer/Audience/ExpireMinutes)."
+                });
             }
 
-            // 2️⃣ Buscar usuário pelo email
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (!int.TryParse(expireMinutesStr, out var expireMinutes))
+                return StatusCode(500, new AuthResponse { Message = "JwtSettings:ExpireMinutes deve ser inteiro." });
 
-            // 3️⃣ Se usuário não existir
-            if (user == null)
+            if (key.Length < 32)
+                return StatusCode(500, new AuthResponse { Message = "JwtSettings:Key precisa ter pelo menos 32 caracteres." });
+
+            // Claims: id, email, name, role
+            var claims = new List<Claim>
             {
-                return Unauthorized(new { message = "Invalid email or password" });
-            }
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
 
-            // 4️⃣ Verificar senha usando hash
-            var passwordVerificationResult =
-                _passwordHasher.VerifyHashedPassword(
-                    user,
-                    user.PasswordHash,
-                    request.Password
-                );
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
-            // 5️⃣ Senha inválida
-            if (passwordVerificationResult == PasswordVerificationResult.Failed)
-            {
-                return Unauthorized(new { message = "Invalid email or password" });
-            }
+            var expiration = DateTime.UtcNow.AddMinutes(expireMinutes);
 
-            // ✅ Login válido
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                notBefore: DateTime.UtcNow,
+                expires: expiration,
+                signingCredentials: creds
+            );
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            // (Opcional) se VerifySuccessRehashNeeded, você pode re-hashear e salvar:
+            // if (verify == PasswordVerificationResult.SuccessRehashNeeded) { ... }
+
             return Ok(new AuthResponse
             {
-                Message = "Login successful. JWT will be generated next."
+                Message = "Login efetuado com sucesso.",
+                Token = tokenString,
+                Expiration = expiration
             });
+        }
+
+        /// <summary>
+        /// GET /api/auth/me (teste: precisa token)
+        /// </summary>
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+            return Ok(new
+            {
+                id = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                email = User.FindFirstValue(JwtRegisteredClaimNames.Email),
+                name = User.FindFirstValue(ClaimTypes.Name),
+                role = User.FindFirstValue(ClaimTypes.Role)
+            });
+        }
+
+        /// <summary>
+        /// GET /api/auth/admin-only (teste: precisa role ADMIN)
+        /// </summary>
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("admin-only")]
+        public IActionResult AdminOnly()
+        {
+            return Ok(new { message = "OK (ADMIN)" });
         }
     }
 }
