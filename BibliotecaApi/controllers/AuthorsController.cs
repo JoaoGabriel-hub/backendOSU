@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using BibliotecaApi.Data;
 using BibliotecaApi.Models;
 
@@ -16,21 +17,41 @@ namespace BibliotecaApi.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateAuthor([FromBody] Author author)
+        public IActionResult CreateAuthor([FromBody] JsonElement body)
         {
-            if (author == null || string.IsNullOrEmpty(author.name))
+            // 🔹 Caso 1: veio um ARRAY de autores
+            if (body.ValueKind == JsonValueKind.Array)
             {
-                return BadRequest("Author name is required.");
+                var authors = JsonSerializer.Deserialize<List<Author>>(body);
+
+                if (authors == null || !authors.Any())
+                    return BadRequest("Author list cannot be empty.");
+
+                if (authors.Any(a => string.IsNullOrWhiteSpace(a.name)))
+                    return BadRequest("All authors must have a name.");
+
+                _context.Authors.AddRange(authors);
+                _context.SaveChanges();
+
+                return Created("authors", authors);
             }
 
-            _context.Authors.Add(author);
-            _context.SaveChanges();
+            // 🔹 Caso 2: veio UM autor
+            if (body.ValueKind == JsonValueKind.Object)
+            {
+                var author = JsonSerializer.Deserialize<Author>(body);
 
-            return CreatedAtAction(
-                nameof(CreateAuthor),
-                new { id = author.id },
-                author
-            );
+                if (author == null || string.IsNullOrWhiteSpace(author.name))
+                    return BadRequest("Author name is required.");
+
+                _context.Authors.Add(author);
+                _context.SaveChanges();
+
+                return Created("authors", author);
+            }
+
+            return BadRequest("Invalid JSON format.");
         }
     }
 }
+
