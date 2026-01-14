@@ -17,6 +17,7 @@ namespace BibliotecaApi.Controllers
         }
 
         [HttpPost]
+        // http://localhost:5205/authors
         public IActionResult CreateAuthor([FromBody] JsonElement body)
         {
             // 🔹 Caso 1: veio um ARRAY de autores
@@ -54,6 +55,7 @@ namespace BibliotecaApi.Controllers
         }
 
         [HttpGet]
+        // http://localhost:5205/authors?page=1&pageSize=5
         public IActionResult GetAuthors([FromQuery] int page = 1)
         {
             const int pageSize = 5;
@@ -80,6 +82,29 @@ namespace BibliotecaApi.Controllers
             };
 
             return Ok(response);
+        }
+
+        [HttpPut("{id}")]
+        // http://localhost:5205/authors/1
+        public IActionResult UpdateAuthor(int id, [FromBody] JsonElement body)
+        {
+            if (body.ValueKind != JsonValueKind.Object)
+                return BadRequest("Invalid JSON format.");
+
+            var author = JsonSerializer.Deserialize<Author>(body);
+
+            if (author == null || string.IsNullOrWhiteSpace(author.name))
+                return BadRequest("Author name is required.");
+
+            var existingAuthor = _context.Authors.Find(id);
+
+            if (existingAuthor == null)
+                return NotFound("Author not found.");
+
+            existingAuthor.name = author.name;
+            _context.SaveChanges();
+
+            return Ok(existingAuthor);
         }
     }
 }
