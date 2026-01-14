@@ -124,3 +124,11 @@
 /home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.Swagger.dll
 /home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerGen.dll
 /home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Microsoft.IdentityModel.Abstractions.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Microsoft.IdentityModel.Logging.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/Microsoft.IdentityModel.Tokens.dll
+/home/joaoramos/Desktop/vbaposu/backendOSU/BibliotecaApi/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll
