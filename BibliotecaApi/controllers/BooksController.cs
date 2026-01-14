@@ -20,7 +20,7 @@ namespace BibliotecaApi.Controllers
         [HttpPost]
         public IActionResult CreateBook([FromBody] JsonElement body)
         {
-            // Caso 1: veio um ARRAY de livros
+            // Case 1: came an ARRAY of books
             if (body.ValueKind == JsonValueKind.Array)
             {
                 var books = JsonSerializer.Deserialize<List<Book>>(body);
@@ -37,7 +37,7 @@ namespace BibliotecaApi.Controllers
                 return Created("books", books);
             }
 
-            // Caso 2: veio UM livro
+            // Case 2: came ONE book
             if (body.ValueKind == JsonValueKind.Object)
             {
                 var book = JsonSerializer.Deserialize<Book>(body);

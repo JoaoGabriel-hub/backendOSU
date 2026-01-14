@@ -25,15 +25,15 @@ namespace BibliotecaApi.Controllers
             if (body.book_id <= 0 || body.author_id <= 0)
                 return BadRequest("book_id and author_id must be > 0.");
 
-            // verifica se book existe
+            // verify if book exists
             var bookExists = await _context.Books.AnyAsync(b => b.id == body.book_id);
             if (!bookExists) return NotFound("Book not found.");
 
-            // verifica se author existe
+            // verify if author exists
             var authorExists = await _context.Authors.AnyAsync(a => a.id == body.author_id);
             if (!authorExists) return NotFound("Author not found.");
 
-            // evita duplicado (PK composta)
+            // avoid duplicate (composite PK)
             var alreadyLinked = await _context.BookAuthors
                 .AnyAsync(x => x.book_id == body.book_id && x.author_id == body.author_id);
 
@@ -59,20 +59,20 @@ namespace BibliotecaApi.Controllers
             if (body == null || body.Count == 0)
                 return BadRequest("List cannot be empty.");
 
-            // valida ids > 0
+            // validate ids > 0
             if (body.Any(x => x.book_id <= 0 || x.author_id <= 0))
                 return BadRequest("All book_id and author_id must be > 0.");
 
-            // remove duplicados dentro do próprio request
+            // remove duplicates within the request itself
             var distinct = body
                 .GroupBy(x => new { x.book_id, x.author_id })
                 .Select(g => g.First())
                 .ToList();
 
-            // (simples) tenta inserir só os que não existem
+            // (simple) try to insert only those that do not exist
             foreach (var item in distinct)
             {
-                // checa book e author existem
+                // check if book and author exist
                 var bookExists = await _context.Books.AnyAsync(b => b.id == item.book_id);
                 if (!bookExists) return NotFound($"Book not found: {item.book_id}");
 
@@ -90,6 +90,7 @@ namespace BibliotecaApi.Controllers
             return Created("book-authors", distinct);
         }
 
+        // The API should be secured, requiring a login before use (for applicable endpoints) with JWT tokens
         [Authorize]
         // DELETE /book-authors/unlink?bookId=1&authorId=2
         [HttpDelete("unlink")]
@@ -111,7 +112,7 @@ namespace BibliotecaApi.Controllers
         }
 
         // GET /book-authors/by-book/1
-        // lista autores do livro (retorna os autores completos)
+        // list authors of the book (returns complete authors)
         [HttpGet("by-book/{bookId}")]
         public async Task<IActionResult> GetAuthorsByBook(int bookId)
         {
@@ -131,8 +132,8 @@ namespace BibliotecaApi.Controllers
             return Ok(authors);
         }
 
-        // (opcional) GET /book-authors/by-author/2
-        // lista livros do autor (retorna os livros completos)
+        // (optional) GET /book-authors/by-author/2
+        // list books of the author (returns complete books)
         [HttpGet("by-author/{authorId}")]
         public async Task<IActionResult> GetBooksByAuthor(int authorId)
         {

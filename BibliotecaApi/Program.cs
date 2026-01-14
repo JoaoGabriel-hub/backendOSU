@@ -1,33 +1,30 @@
 using BibliotecaApi.Data;
 using Microsoft.EntityFrameworkCore;
 
-// 🔐 JWT usings (NOVOS)
+// JWT usings (NEW)
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// -----------------------------
+
 // Register services for the application
-// -----------------------------
-
 // Add controllers (required to use [ApiController] and MapControllers)
-builder.Services.AddControllers();  // <-- ESSENTIAL
+builder.Services.AddControllers();  
 
-// -----------------------------
+
 // Add Swagger / OpenAPI services
-// -----------------------------
-builder.Services.AddEndpointsApiExplorer();  // <-- Required for Swagger to discover endpoints
-builder.Services.AddSwaggerGen();            // <-- Generates the Swagger/OpenAPI documentation
+// The API should be documented using Swagger UI
+builder.Services.AddEndpointsApiExplorer();  
+builder.Services.AddSwaggerGen();            
 
 // Add DbContext for PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// -----------------------------
-// 🔐 JWT Authentication (NOVO)
-// -----------------------------
+//  JWT Authentication (NEW)
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["Key"];
 
@@ -38,7 +35,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // OK para desenvolvimento
+    options.RequireHttpsMetadata = false; 
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -53,21 +50,17 @@ builder.Services.AddAuthentication(options =>
             Encoding.UTF8.GetBytes(secretKey!)
         ),
 
-        ClockSkew = TimeSpan.Zero // sem tolerância para token expirado
+        ClockSkew = TimeSpan.Zero // no tolerance for expired token
     };
 });
 
-// Authorization service (necessário para [Authorize])
+// Authorization service (required for [Authorize])
 builder.Services.AddAuthorization();
 
-// -----------------------------
 // Build the application
-// -----------------------------
 var app = builder.Build();
 
-// -----------------------------
 // Configure the HTTP request pipeline
-// -----------------------------
 if (app.Environment.IsDevelopment())
 {
     // Enable Swagger UI and JSON in development
@@ -78,13 +71,11 @@ if (app.Environment.IsDevelopment())
 // Redirect HTTP to HTTPS
 app.UseHttpsRedirection();
 
-// 🔐 Middleware JWT (ORDEM IMPORTA)
+//  JWT Middleware (ORDER MATTERS)
 app.UseAuthentication();
 app.UseAuthorization();
 
-// -----------------------------
-// Original code: WeatherForecast example
-// -----------------------------
+// WeatherForecast example
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -104,19 +95,14 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-// -----------------------------
+
 // Map controller routes
-// -----------------------------
 app.MapControllers(); // <-- ESSENTIAL
 
-// -----------------------------
 // Run the application
-// -----------------------------
 app.Run();
 
-// -----------------------------
 // Record type used in WeatherForecast example
-// -----------------------------
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);

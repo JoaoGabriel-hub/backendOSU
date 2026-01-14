@@ -21,7 +21,7 @@ namespace BibliotecaApi.Controllers
 
         // POST /loans
         // Body: { "user_id": 1, "book_id": 10 }
-        // 🔐 precisa token
+        // The API should be secured, requiring a login before use (for applicable endpoints) with JWT tokens
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> CreateLoan([FromBody] JsonElement body)
@@ -34,22 +34,22 @@ namespace BibliotecaApi.Controllers
             if (input == null || input.user_id <= 0 || input.book_id <= 0)
                 return BadRequest("user_id and book_id are required and must be > 0.");
 
-            // valida user
+            // validate user
             var userExists = await _context.Users.AnyAsync(u => u.Id == input.user_id);
             if (!userExists) return NotFound("User not found.");
 
-            // valida book
+            // validate book
             var bookExists = await _context.Books.AnyAsync(b => b.id == input.book_id);
             if (!bookExists) return NotFound("Book not found.");
 
-            // 🔹 gera datas aleatórias
+            // generate random dates
             var rng = Random.Shared;
 
-            // loan_date entre hoje e 60 dias atrás
+            // loan_date between today and 60 days ago
             var loanDaysBack = rng.Next(0, 61); // 0..60
             var loanDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-loanDaysBack));
 
-            // return_date entre loan_date e hoje
+            // return_date between loan_date and today
             var maxReturnDays = (DateTime.Today - loanDate.ToDateTime(TimeOnly.MinValue)).Days;
             var returnDaysAfter = rng.Next(0, Math.Max(1, maxReturnDays + 1));
             var returnDate = loanDate.AddDays(returnDaysAfter);
@@ -70,6 +70,7 @@ namespace BibliotecaApi.Controllers
 
         // GET /loans?id=1
         // GET /loans?page=1
+        // There is at least one endpoint with pagination.
         [HttpGet]
         public IActionResult GetLoans([FromQuery] int? id, [FromQuery] int page = 1)
         {
@@ -111,11 +112,6 @@ namespace BibliotecaApi.Controllers
         {
             var loan = await _context.Loans.FirstOrDefaultAsync(l => l.id == id);
             if (loan == null) return NotFound("Loan not found.");
-
-            // (opcional) se você estiver controlando disponibilidade do livro,
-            // aqui você pode devolver o book pra available=true
-            // var book = await _context.Books.FirstOrDefaultAsync(b => b.id == loan.book_id);
-            // if (book != null) book.available = true;
 
             _context.Loans.Remove(loan);
             await _context.SaveChangesAsync();

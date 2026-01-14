@@ -22,7 +22,7 @@ namespace BibliotecaApi.Controllers
         // http://localhost:5205/authors
         public IActionResult CreateAuthor([FromBody] JsonElement body)
         {
-            // 🔹 Caso 1: veio um ARRAY de autores
+            // Case 1: came an ARRAY of authors
             if (body.ValueKind == JsonValueKind.Array)
             {
                 var authors = JsonSerializer.Deserialize<List<Author>>(body);
@@ -39,7 +39,7 @@ namespace BibliotecaApi.Controllers
                 return Created("authors", authors);
             }
 
-            // 🔹 Caso 2: veio UM autor
+            // Case 2: came ONE author
             if (body.ValueKind == JsonValueKind.Object)
             {
                 var author = JsonSerializer.Deserialize<Author>(body);
@@ -56,15 +56,17 @@ namespace BibliotecaApi.Controllers
             return BadRequest("Invalid JSON format.");
         }
 
+        // The API should be secured, requiring a login before use (for applicable endpoints) with JWT tokens
         [Authorize]
         [HttpGet]
         // http://localhost:5205/authors?page=1&pageSize=5
         // http://localhost:5205/authors?id=1
+        // There is at least one endpoint with pagination.
         public IActionResult GetAuthors([FromQuery] int? id, [FromQuery] int page = 1)
         {
             const int pageSize = 5;
 
-            // 🔹 Caso 1: buscar por ID específico
+            // Case 1: search by specific ID
             if (id.HasValue)
             {
             var author = _context.Authors.Find(id.Value);
@@ -75,7 +77,7 @@ namespace BibliotecaApi.Controllers
             return Ok(author);
             }
 
-            // 🔹 Caso 2: buscar com paginação
+            // Case 2: search with pagination
             if (page < 1)
             return BadRequest("Page number must be greater than 0.");
 

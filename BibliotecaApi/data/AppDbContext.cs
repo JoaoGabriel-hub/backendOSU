@@ -21,7 +21,7 @@ namespace BibliotecaApi.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // ✅ chave composta (book_id, author_id)
+            // composite key (book_id, author_id)
             modelBuilder.Entity<BookAuthor>()
                 .HasKey(x => new { x.book_id, x.author_id });
         }
