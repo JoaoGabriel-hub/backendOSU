@@ -56,29 +56,42 @@ namespace BibliotecaApi.Controllers
 
         [HttpGet]
         // http://localhost:5205/authors?page=1&pageSize=5
-        public IActionResult GetAuthors([FromQuery] int page = 1)
+        // http://localhost:5205/authors?id=1
+        public IActionResult GetAuthors([FromQuery] int? id, [FromQuery] int page = 1)
         {
             const int pageSize = 5;
 
+            // 🔹 Caso 1: buscar por ID específico
+            if (id.HasValue)
+            {
+            var author = _context.Authors.Find(id.Value);
+
+            if (author == null)
+                return NotFound("Author not found.");
+
+            return Ok(author);
+            }
+
+            // 🔹 Caso 2: buscar com paginação
             if (page < 1)
-                return BadRequest("Page number must be greater than 0.");
+            return BadRequest("Page number must be greater than 0.");
 
             var totalAuthors = _context.Authors.Count();
             var authors = _context.Authors
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
             if (!authors.Any())
-                return NotFound("No authors found.");
+            return NotFound("No authors found.");
 
             var response = new
             {
-                page,
-                pageSize,
-                totalAuthors,
-                totalPages = (totalAuthors + pageSize - 1) / pageSize,
-                authors
+            page,
+            pageSize,
+            totalAuthors,
+            totalPages = (totalAuthors + pageSize - 1) / pageSize,
+            authors
             };
 
             return Ok(response);
