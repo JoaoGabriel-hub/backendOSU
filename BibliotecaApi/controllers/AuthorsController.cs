@@ -106,6 +106,21 @@ namespace BibliotecaApi.Controllers
 
             return Ok(existingAuthor);
         }
+
+        [HttpDelete("{id}")]
+        // http://localhost:5205/authors/1
+        public IActionResult DeleteAuthor(int id)
+        {
+            var author = _context.Authors.Find(id);
+
+            if (author == null)
+            return NotFound("Author not found.");
+
+            _context.Authors.Remove(author);
+            _context.SaveChanges();
+
+            return NoContent();
+        }
     }
 }
 
