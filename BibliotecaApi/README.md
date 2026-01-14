@@ -1,32 +1,81 @@
-# Backend OSU
+// Architecture and Software Engineering Principles //
 
-## A Importância de um Backend Limpo e Organizado
+This project was designed following basic software engineering principles, with a clear focus on n-layer architecture and SOLID principles, adapted to the scope of a RESTful Web API.
 
-Um backend bem estruturado é a fundação de qualquer aplicação robusta e escalável. Mais do que apenas código que funciona, um backend limpo e organizado traz benefícios significativos para todo o ciclo de vida do projeto:
+The domain of the project is based on an idea of a library called "Biblioteca" in portuguese. We have 
+classes such as the users, the books, the author and the loans.
 
-### 🔍 Manutenibilidade
-Código organizado é código que pode ser facilmente compreendido e modificado. Quando a estrutura é clara e as responsabilidades bem definidas, novos desenvolvedores conseguem se integrar rapidamente ao projeto, e bugs podem ser identificados e corrigidos com muito mais agilidade.
+==> N-Layer Architecture
 
-### 📈 Escalabilidade
-Uma arquitetura bem planejada permite que a aplicação cresça de forma sustentável. Com separação adequada de camadas (controllers, services, repositories), é possível adicionar novas funcionalidades sem comprometer o código existente, seguindo princípios como SOLID e Clean Architecture.
+The application is organized into well-defined layers, each with a clear responsibility:
 
-### 🛡️ Segurança
-Backends organizados facilitam a implementação de boas práticas de segurança. Validações de entrada, tratamento de erros adequado, e controle de acesso ficam mais evidentes e consistentes quando o código segue padrões claros.
+>> Controllers layer (Controllers/)
 
-### ⚡ Performance
-Com uma estrutura bem definida, é mais fácil identificar gargalos de performance e otimizar queries ao banco de dados. A separação de responsabilidades permite implementar cache, processamento assíncrono e outras técnicas de otimização de forma mais eficiente.
+        Responsible for handling HTTP requests and responses.
 
-### 🧪 Testabilidade
-Código limpo e desacoplado é naturalmente mais testável. Quando as dependências são bem gerenciadas e as funções têm responsabilidades únicas, escrever testes unitários e de integração se torna uma tarefa muito mais simples e efetiva.
+        Exposes REST endpoints (POST, GET, PUT, DELETE).
 
-### 👥 Colaboração em Equipe
-Um código padronizado e bem documentado reduz fricções entre membros da equipe. Todos trabalham seguindo as mesmas convenções, facilitando code reviews e reduzindo conflitos no controle de versão.
+        Does not contain database logic.
 
-### 💰 Redução de Custos
-Embora possa parecer que investir tempo em organização "atrasa" o desenvolvimento inicial, a longo prazo isso resulta em economia significativa. Menos bugs em produção, menor tempo de onboarding, e facilidade de manutenção se traduzem em custos operacionais mais baixos.
+        Delegates persistence to the data layer via DbContext.
 
----
+>> Models layer (Models/)
 
-> "Qualquer tolo pode escrever código que um computador entende. Bons programadores escrevem código que humanos entendem." - Martin Fowler
+        Represents domain entities (User, Author, Book, Loan, BookAuthor).
 
-Um backend limpo não é um luxo, é uma necessidade para qualquer projeto que almeja longevidade e sucesso.
+        Maps directly to database tables using Entity Framework Core.
+
+        Contains no business logic or infrastructure concerns.
+
+>> Data layer (Data/)
+
+        Contains AppDbContext.
+
+        Responsible for database access and entity persistence.
+
+        Isolated from HTTP and authentication concerns.
+
+>> Authentication layer (Auth/)
+
+        Handles user authentication and JWT generation.
+
+        Centralizes login logic and token creation.
+
+        Keeps authentication concerns separate from business entities.
+
+
+==> SOLID Principles
+
+The project follows the core ideas of the SOLID principles, within the context of a Web API:
+
+>> Single Responsibility Principle (SRP)
+
+    Each class has one clear responsibility:
+        Controllers handle HTTP flow only.
+        Models represent data structures.
+        AppDbContext manages database access.
+        Authentication logic is isolated in the Auth module.
+
+>> Open/Closed Principle (OCP)
+
+    The system can be extended (new endpoints, new entities, new rules) without modifying existing core logic.
+
+>> Liskov Substitution Principle (LSP)
+
+    The application relies on framework abstractions (ControllerBase, DbContext) without violating expected behavior.
+
+>> Interface Segregation Principle (ISP)
+
+    Controllers expose only the endpoints they need, avoiding unnecessary methods or large shared interfaces.
+
+>> Dependency Inversion Principle (DIP)
+
+    Dependencies such as AppDbContext and IConfiguration are injected via Dependency Injection, rather than being instantiated directly inside classes.
+
+
+==> Authentication and Authorization
+
+    Authentication is handled using JWT (JSON Web Tokens).
+    Authorization is applied selectively using [Authorize] attributes.
+    Endpoints that modify sensitive data (e.g. DELETE operations) require a valid token.
+    This ensures secure access while keeping read operations flexible where appropriate.
