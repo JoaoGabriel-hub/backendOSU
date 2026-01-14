@@ -52,6 +52,35 @@ namespace BibliotecaApi.Controllers
 
             return BadRequest("Invalid JSON format.");
         }
+
+        [HttpGet]
+        public IActionResult GetAuthors([FromQuery] int page = 1)
+        {
+            const int pageSize = 5;
+
+            if (page < 1)
+                return BadRequest("Page number must be greater than 0.");
+
+            var totalAuthors = _context.Authors.Count();
+            var authors = _context.Authors
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            if (!authors.Any())
+                return NotFound("No authors found.");
+
+            var response = new
+            {
+                page,
+                pageSize,
+                totalAuthors,
+                totalPages = (totalAuthors + pageSize - 1) / pageSize,
+                authors
+            };
+
+            return Ok(response);
+        }
     }
 }
 
