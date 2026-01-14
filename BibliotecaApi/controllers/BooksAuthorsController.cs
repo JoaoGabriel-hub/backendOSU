@@ -2,6 +2,7 @@ using BibliotecaApi.Data;
 using BibliotecaApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BibliotecaApi.Controllers
 {
@@ -89,7 +90,7 @@ namespace BibliotecaApi.Controllers
             return Created("book-authors", distinct);
         }
 
-
+        [Authorize]
         // DELETE /book-authors/unlink?bookId=1&authorId=2
         [HttpDelete("unlink")]
         public async Task<IActionResult> Unlink([FromQuery] int bookId, [FromQuery] int authorId)
