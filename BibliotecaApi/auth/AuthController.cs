@@ -1,6 +1,5 @@
 using BibliotecaApi.Data;
 using BibliotecaApi.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,27 +32,26 @@ namespace BibliotecaApi.Auth
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
         {
-            // Se faltar campo, [ApiController] já retorna 400 com ModelState,
-            // mas deixo isso aqui para mensagem mais direta:
             if (!ModelState.IsValid)
                 return BadRequest(new AuthResponse { Message = "Dados de login inválidos." });
 
             var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-            // Busca usuário por email (case-insensitive)
             var user = await _db.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
 
             if (user is null)
                 return Unauthorized(new AuthResponse { Message = "Credenciais inválidas." });
 
-            // Seu hash "AQAAAA..." é do ASP.NET Identity => validate assim:
-            var verify = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+            var verify = _passwordHasher.VerifyHashedPassword(
+                user,
+                user.PasswordHash,
+                request.Password
+            );
 
             if (verify == PasswordVerificationResult.Failed)
                 return Unauthorized(new AuthResponse { Message = "Credenciais inválidas." });
 
-            // Lê config JWT
             var jwtSection = _configuration.GetSection("JwtSettings");
             var key = jwtSection["Key"];
             var issuer = jwtSection["Issuer"];
@@ -67,17 +65,22 @@ namespace BibliotecaApi.Auth
             {
                 return StatusCode(500, new AuthResponse
                 {
-                    Message = "JwtSettings inválido no appsettings.json (Key/Issuer/Audience/ExpireMinutes)."
+                    Message = "JwtSettings inválido no appsettings.json."
                 });
             }
 
             if (!int.TryParse(expireMinutesStr, out var expireMinutes))
-                return StatusCode(500, new AuthResponse { Message = "JwtSettings:ExpireMinutes deve ser inteiro." });
+                return StatusCode(500, new AuthResponse
+                {
+                    Message = "JwtSettings:ExpireMinutes deve ser inteiro."
+                });
 
             if (key.Length < 32)
-                return StatusCode(500, new AuthResponse { Message = "JwtSettings:Key precisa ter pelo menos 32 caracteres." });
+                return StatusCode(500, new AuthResponse
+                {
+                    Message = "JwtSettings:Key precisa ter pelo menos 32 caracteres."
+                });
 
-            // Claims: id, email, name, role
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -104,41 +107,12 @@ namespace BibliotecaApi.Auth
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
-            // (Opcional) se VerifySuccessRehashNeeded, você pode re-hashear e salvar:
-            // if (verify == PasswordVerificationResult.SuccessRehashNeeded) { ... }
-
             return Ok(new AuthResponse
             {
                 Message = "Login efetuado com sucesso.",
                 Token = tokenString,
                 Expiration = expiration
             });
-        }
-
-        /// <summary>
-        /// GET /api/auth/me (teste: precisa token)
-        /// </summary>
-        [Authorize]
-        [HttpGet("me")]
-        public IActionResult Me()
-        {
-            return Ok(new
-            {
-                id = User.FindFirstValue(ClaimTypes.NameIdentifier),
-                email = User.FindFirstValue(JwtRegisteredClaimNames.Email),
-                name = User.FindFirstValue(ClaimTypes.Name),
-                role = User.FindFirstValue(ClaimTypes.Role)
-            });
-        }
-
-        /// <summary>
-        /// GET /api/auth/admin-only (teste: precisa role ADMIN)
-        /// </summary>
-        [Authorize(Roles = "ADMIN")]
-        [HttpGet("admin-only")]
-        public IActionResult AdminOnly()
-        {
-            return Ok(new { message = "OK (ADMIN)" });
         }
     }
 }
