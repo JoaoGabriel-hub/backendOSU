@@ -10,8 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add controllers (required to use [ApiController] and MapControllers)
 builder.Services.AddControllers();  // <-- ESSENTIAL
 
-// Add OpenAPI / Swagger services
-builder.Services.AddOpenApi();
+// -----------------------------
+// Add Swagger / OpenAPI services
+// -----------------------------
+builder.Services.AddEndpointsApiExplorer();  // <-- Required for Swagger to discover endpoints
+builder.Services.AddSwaggerGen();            // <-- Generates the Swagger/OpenAPI documentation
 
 // Add DbContext for PostgreSQL (optional for now, but required later)
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -27,8 +30,9 @@ var app = builder.Build();
 // -----------------------------
 if (app.Environment.IsDevelopment())
 {
-    // Enable Swagger UI in development
-    app.MapOpenApi();
+    // Enable Swagger UI and JSON in development
+    app.UseSwagger();       // <-- Serves the Swagger JSON endpoint
+    app.UseSwaggerUI();     // <-- Serves the interactive Swagger UI at /swagger
 }
 
 // Redirect HTTP to HTTPS
