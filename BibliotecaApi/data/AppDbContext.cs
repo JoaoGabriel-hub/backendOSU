@@ -11,5 +11,6 @@ namespace BibliotecaApi.Data
         }
 
         public DbSet<Author> Authors { get; set; }
+        public DbSet<User> Users { get; set; }
     }
 }
