@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using BibliotecaApi.Data;
 using BibliotecaApi.Models;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace BibliotecaApi.Controllers
 {
@@ -54,6 +56,7 @@ namespace BibliotecaApi.Controllers
             return BadRequest("Invalid JSON format.");
         }
 
+        [Authorize]
         [HttpGet]
         // http://localhost:5205/authors?page=1&pageSize=5
         // http://localhost:5205/authors?id=1
